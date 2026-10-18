@@ -10,6 +10,7 @@ public static class IntegrationRunner
     private static readonly IIntegration[] Integrations =
     {
         new TailwindIntegration(),
+        new ReactRouterIntegration(),
         new EslintIntegration(),
         new PrettierIntegration()
     };
