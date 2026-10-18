@@ -6,9 +6,12 @@ namespace ReactGen.Services.Integrations;
 public static class IntegrationRunner
 {
     // Add new integrations to this list as they are built.
+    // Prettier stays last so it formats files written by the others.
     private static readonly IIntegration[] Integrations =
     {
-        new TailwindIntegration()
+        new TailwindIntegration(),
+        new EslintIntegration(),
+        new PrettierIntegration()
     };
 
     // Applies every selected integration. Stops at the first failure.
