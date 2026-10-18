@@ -36,3 +36,5 @@ if (!IntegrationRunner.Run(options))
 
 Console.WriteLine();
 ConsoleUI.Success($"Project created at {options.ProjectPath}");
+
+PostSetupMenu.Show(options);

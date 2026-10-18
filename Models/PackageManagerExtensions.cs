@@ -10,4 +10,13 @@ public static class PackageManagerExtensions
         PackageManager.Yarn => "yarn",
         _ => throw new ArgumentOutOfRangeException(nameof(manager))
     };
+
+    // The command that starts the Vite dev server.
+    public static string ToDevCommand(this PackageManager manager) => manager switch
+    {
+        PackageManager.Npm => "npm run dev",
+        PackageManager.Pnpm => "pnpm dev",
+        PackageManager.Yarn => "yarn dev",
+        _ => throw new ArgumentOutOfRangeException(nameof(manager))
+    };
 }
