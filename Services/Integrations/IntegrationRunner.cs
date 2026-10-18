@@ -11,6 +11,7 @@ public static class IntegrationRunner
     {
         new TailwindIntegration(),
         new ReactRouterIntegration(),
+        new SupabaseIntegration(),
         new EslintIntegration(),
         new PrettierIntegration()
     };
