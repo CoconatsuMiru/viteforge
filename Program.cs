@@ -1,4 +1,5 @@
 ﻿using ReactGen.Services;
+using ReactGen.Services.Integrations;
 using ReactGen.UI;
 
 ConsoleUI.Title("ReactGen - React + TypeScript + Vite project generator");
@@ -24,6 +25,12 @@ if (!ConsoleUI.AskYesNo("Create this project?", defaultValue: true))
 if (!ProjectScaffolder.Create(options))
 {
     ConsoleUI.Error("Project creation failed. See the messages above.");
+    return;
+}
+
+if (!IntegrationRunner.Run(options))
+{
+    ConsoleUI.Error("Integration setup failed. See the messages above.");
     return;
 }
 
