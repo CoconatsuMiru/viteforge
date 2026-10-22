@@ -4,12 +4,14 @@ using ReactGen.Services.Integrations;
 
 namespace ReactGen.UI;
 
-// Runs the generator and shows its output live.
+// Runs the generator, shows its output live, then offers follow-up actions.
 public class ProgressForm : Form
 {
     private readonly ProjectOptions _options;
     private readonly RichTextBox _log = new();
     private readonly Label _result = Theme.CreateLabel("Working... please wait.", color: Theme.Warning);
+    private readonly Button _openButton = Theme.CreateButton("Open in VS Code");
+    private readonly Button _copyButton = Theme.CreateButton("Copy start commands");
     private readonly Button _closeButton = Theme.CreateButton("Close");
     private bool _running;
 
@@ -27,7 +29,7 @@ public class ProgressForm : Form
         Theme.StyleForm(this);
 
         _log.Location = new Point(24, 24);
-        _log.Size = new Size(772, 410);
+        _log.Size = new Size(772, 370);
         _log.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
         _log.ReadOnly = true;
         _log.BackColor = Theme.Background;
@@ -36,8 +38,22 @@ public class ProgressForm : Form
         _log.BorderStyle = BorderStyle.FixedSingle;
         _log.DetectUrls = false;
 
-        _result.Location = new Point(24, 462);
-        _result.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+        _result.AutoSize = false;
+        _result.Location = new Point(24, 404);
+        _result.Size = new Size(772, 40);
+        _result.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+
+        _openButton.Location = new Point(24, 456);
+        _openButton.Size = new Size(190, 36);
+        _openButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+        _openButton.Visible = false;
+        _openButton.Click += OnOpenVsCode;
+
+        _copyButton.Location = new Point(230, 456);
+        _copyButton.Size = new Size(240, 36);
+        _copyButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+        _copyButton.Visible = false;
+        _copyButton.Click += OnCopyCommands;
 
         _closeButton.Location = new Point(676, 456);
         _closeButton.Size = new Size(120, 36);
@@ -45,7 +61,7 @@ public class ProgressForm : Form
         _closeButton.DialogResult = DialogResult.OK;
         _closeButton.Enabled = false;
 
-        Controls.AddRange(new Control[] { _log, _result, _closeButton });
+        Controls.AddRange(new Control[] { _log, _result, _openButton, _copyButton, _closeButton });
     }
 
     protected override async void OnShown(EventArgs e)
@@ -65,6 +81,11 @@ public class ProgressForm : Form
         {
             _result.ForeColor = Theme.Success;
             _result.Text = "[OK] Done.";
+
+            ShowStartCommands();
+
+            _openButton.Visible = true;
+            _copyButton.Visible = true;
         }
         else
         {
@@ -118,6 +139,62 @@ public class ProgressForm : Form
         {
             ConsoleUI.Error($"Unexpected error: {ex.Message}");
             return false;
+        }
+    }
+
+    private void ShowStartCommands()
+    {
+        AppendLog("", ConsoleColor.Gray);
+        AppendLog("To start the dev server, run:", ConsoleColor.Cyan);
+        AppendLog($"  cd \"{_options.ProjectPath}\"", ConsoleColor.Gray);
+        AppendLog($"  {_options.PackageManager.ToDevCommand()}", ConsoleColor.Gray);
+
+        if (_options.UseSupabase)
+        {
+            AppendLog("", ConsoleColor.Gray);
+            AppendLog("[!] Fill in your Supabase URL and key in .env before using Supabase.", ConsoleColor.Yellow);
+        }
+    }
+
+    private async void OnOpenVsCode(object? sender, EventArgs e)
+    {
+        _openButton.Enabled = false;
+
+        var (success, message) = await Task.Run(OpenInVsCode);
+
+        _result.ForeColor = success ? Theme.Success : Theme.Error;
+        _result.Text = message;
+        _openButton.Enabled = true;
+    }
+
+    private (bool Success, string Message) OpenInVsCode()
+    {
+        if (!CommandRunner.RunCapture("code", "--version").Success)
+        {
+            return (false, "[X] The 'code' command was not found. In VS Code, run: Shell Command: Install 'code' command in PATH");
+        }
+
+        var result = CommandRunner.RunCapture("code", $"\"{_options.ProjectPath}\"");
+
+        return result.Success
+            ? (true, "[OK] Opened in VS Code.")
+            : (false, "[X] Could not open VS Code.");
+    }
+
+    private void OnCopyCommands(object? sender, EventArgs e)
+    {
+        var text = $"cd \"{_options.ProjectPath}\"{Environment.NewLine}{_options.PackageManager.ToDevCommand()}";
+
+        try
+        {
+            Clipboard.SetText(text);
+            _result.ForeColor = Theme.Success;
+            _result.Text = "[OK] Start commands copied to the clipboard.";
+        }
+        catch (Exception)
+        {
+            _result.ForeColor = Theme.Error;
+            _result.Text = "[X] Could not access the clipboard.";
         }
     }
 
