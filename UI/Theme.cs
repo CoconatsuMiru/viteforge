@@ -66,4 +66,35 @@ public static class Theme
 
         return button;
     }
+
+    public static CheckBox CreateCheckBox(string text, bool isChecked = false)
+    {
+        return new CheckBox
+        {
+            Text = text,
+            Checked = isChecked,
+            AutoSize = true,
+            Font = BodyFont,
+            ForeColor = Text,
+            BackColor = Color.Transparent,
+            Cursor = Cursors.Hand
+        };
+    }
+
+    public static ComboBox CreateComboBox(params string[] items)
+    {
+        var box = new ComboBox
+        {
+            Font = BodyFont,
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Panel,
+            ForeColor = Text
+        };
+
+        box.Items.AddRange(items);
+        box.SelectedIndex = 0;
+
+        return box;
+    }
 }

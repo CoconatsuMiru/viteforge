@@ -1,3 +1,4 @@
+using ReactGen.Models;
 using ReactGen.Services;
 
 namespace ReactGen.UI;
@@ -7,14 +8,20 @@ public class MainForm : Form
     private readonly TextBox _nameBox = Theme.CreateTextBox();
     private readonly TextBox _folderBox = Theme.CreateTextBox();
     private readonly Button _browseButton = Theme.CreateButton("Browse...");
-    private readonly Button _checkButton = Theme.CreateButton("Check inputs");
+    private readonly ComboBox _managerBox = Theme.CreateComboBox("npm", "pnpm", "yarn");
+    private readonly CheckBox _tailwindBox = Theme.CreateCheckBox("Tailwind CSS", true);
+    private readonly CheckBox _eslintBox = Theme.CreateCheckBox("ESLint", true);
+    private readonly CheckBox _prettierBox = Theme.CreateCheckBox("Prettier", true);
+    private readonly CheckBox _routerBox = Theme.CreateCheckBox("React Router");
+    private readonly CheckBox _supabaseBox = Theme.CreateCheckBox("Supabase");
+    private readonly Button _createButton = Theme.CreateButton("Review and create");
     private readonly Label _status = Theme.CreateLabel("");
 
     public MainForm()
     {
         Text = "ReactGen";
-        ClientSize = new Size(760, 380);
-        MinimumSize = new Size(640, 380);
+        ClientSize = new Size(760, 570);
+        MinimumSize = new Size(640, 570);
         StartPosition = FormStartPosition.CenterScreen;
         Theme.StyleForm(this);
 
@@ -25,38 +32,55 @@ public class MainForm : Form
         title.Location = new Point(24, 20);
 
         var nameLabel = Theme.CreateLabel("Project name");
-        nameLabel.Location = new Point(24, 80);
+        nameLabel.Location = new Point(24, 70);
 
-        _nameBox.Location = new Point(24, 104);
+        _nameBox.Location = new Point(24, 94);
         _nameBox.Size = new Size(712, 28);
         _nameBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
         var folderLabel = Theme.CreateLabel("Destination folder");
-        folderLabel.Location = new Point(24, 160);
+        folderLabel.Location = new Point(24, 140);
 
         _folderBox.Text = @"C:\Dev";
-        _folderBox.Location = new Point(24, 184);
+        _folderBox.Location = new Point(24, 164);
         _folderBox.Size = new Size(592, 28);
         _folderBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
-        _browseButton.Location = new Point(628, 182);
+        _browseButton.Location = new Point(628, 162);
         _browseButton.Size = new Size(108, 32);
         _browseButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _browseButton.Click += OnBrowse;
 
-        _checkButton.Location = new Point(24, 244);
-        _checkButton.Size = new Size(140, 36);
-        _checkButton.Click += OnCheck;
+        var managerLabel = Theme.CreateLabel("Package manager");
+        managerLabel.Location = new Point(24, 220);
+
+        _managerBox.Location = new Point(24, 244);
+        _managerBox.Size = new Size(200, 28);
+
+        var integrationsLabel = Theme.CreateLabel("Optional integrations");
+        integrationsLabel.Location = new Point(24, 300);
+
+        _tailwindBox.Location = new Point(24, 328);
+        _eslintBox.Location = new Point(24, 358);
+        _prettierBox.Location = new Point(24, 388);
+        _routerBox.Location = new Point(300, 328);
+        _supabaseBox.Location = new Point(300, 358);
+
+        _createButton.Location = new Point(24, 440);
+        _createButton.Size = new Size(200, 36);
+        _createButton.Click += OnReviewAndCreate;
 
         _status.AutoSize = false;
-        _status.Location = new Point(24, 300);
+        _status.Location = new Point(24, 496);
         _status.Size = new Size(712, 56);
         _status.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
         Controls.AddRange(new Control[]
         {
-            title, nameLabel, _nameBox, folderLabel, _folderBox,
-            _browseButton, _checkButton, _status
+            title, nameLabel, _nameBox, folderLabel, _folderBox, _browseButton,
+            managerLabel, _managerBox, integrationsLabel,
+            _tailwindBox, _eslintBox, _prettierBox, _routerBox, _supabaseBox,
+            _createButton, _status
         });
     }
 
@@ -82,7 +106,7 @@ public class MainForm : Form
         }
     }
 
-    private void OnCheck(object? sender, EventArgs e)
+    private void OnReviewAndCreate(object? sender, EventArgs e)
     {
         var name = _nameBox.Text.Trim();
         var folder = _folderBox.Text;
@@ -93,14 +117,36 @@ public class MainForm : Form
 
         if (error is not null)
         {
-            _status.ForeColor = Theme.Error;
-            _status.Text = $"[X] {error}";
+            ShowStatus($"[X] {error}", Theme.Error);
             return;
         }
 
-        var projectPath = Path.Combine(InputValidator.NormalizePath(folder), name);
+        var options = new ProjectOptions
+        {
+            ProjectName = name,
+            DestinationFolder = InputValidator.NormalizePath(folder),
+            PackageManager = (PackageManager)_managerBox.SelectedIndex,
+            UseTailwind = _tailwindBox.Checked,
+            UseEslint = _eslintBox.Checked,
+            UsePrettier = _prettierBox.Checked,
+            UseReactRouter = _routerBox.Checked,
+            UseSupabase = _supabaseBox.Checked
+        };
 
-        _status.ForeColor = Theme.Success;
-        _status.Text = $"[OK] Will create: {projectPath}";
+        using var summary = new SummaryDialog(options);
+
+        if (summary.ShowDialog(this) != DialogResult.OK)
+        {
+            ShowStatus("[!] Cancelled. Nothing was created.", Theme.Warning);
+            return;
+        }
+
+        ShowStatus("[OK] Confirmed. Project creation comes in the next step.", Theme.Success);
+    }
+
+    private void ShowStatus(string message, Color color)
+    {
+        _status.ForeColor = color;
+        _status.Text = message;
     }
 }
