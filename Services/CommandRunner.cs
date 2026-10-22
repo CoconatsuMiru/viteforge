@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
+using ReactGen.UI;
 
 namespace ReactGen.Services;
 
@@ -10,6 +12,10 @@ public record CommandResult(int ExitCode, string Output)
 
 public static class CommandRunner
 {
+    // Matches color/cursor codes that some tools print.
+    private static readonly Regex AnsiPattern =
+        new("\u001B\\[[0-9;?]*[ -/]*[@-~]", RegexOptions.Compiled);
+
     // Runs a command through cmd.exe and captures its output (nothing is shown).
     public static CommandResult RunCapture(
         string command,
@@ -65,7 +71,7 @@ public static class CommandRunner
         }
     }
 
-    // Runs a command through cmd.exe and shows its output live in this window.
+    // Runs a command through cmd.exe and sends its output line by line to ConsoleUI.
     // Returns the exit code (0 = success).
     public static int RunLive(string command, string? workingDirectory = null)
     {
@@ -73,7 +79,11 @@ public static class CommandRunner
         {
             FileName = "cmd.exe",
             Arguments = $"/c {command}",
-            UseShellExecute = false
+            UseShellExecute = false,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
         };
 
         if (workingDirectory is not null)
@@ -83,20 +93,41 @@ public static class CommandRunner
 
         try
         {
-            using var process = Process.Start(startInfo);
+            using var process = new Process { StartInfo = startInfo };
 
-            if (process is null)
-            {
-                return -1;
-            }
+            process.OutputDataReceived += (_, e) => ShowLine(e.Data);
+            process.ErrorDataReceived += (_, e) => ShowLine(e.Data);
 
+            process.Start();
+
+            // Nothing will be typed into the command, so close its input right away.
+            process.StandardInput.Close();
+
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
             process.WaitForExit();
+
             return process.ExitCode;
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            ConsoleUI.Error(ex.Message);
             return -1;
+        }
+    }
+
+    private static void ShowLine(string? line)
+    {
+        if (line is null)
+        {
+            return;
+        }
+
+        var clean = AnsiPattern.Replace(line, "").TrimEnd();
+
+        if (clean.Length > 0)
+        {
+            ConsoleUI.Info(clean);
         }
     }
 }

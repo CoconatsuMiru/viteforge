@@ -2,12 +2,15 @@ namespace ReactGen.UI;
 
 public static class ConsoleUI
 {
+    // When set, messages go here instead of the console (the window UI sets this).
+    public static Action<string, ConsoleColor>? OutputHandler { get; set; }
+
     public static void Title(string text)
     {
-        Console.WriteLine();
-        Console.WriteLine(text);
-        Console.WriteLine(new string('=', text.Length));
-        Console.WriteLine();
+        Write("", ConsoleColor.Gray);
+        Write(text, ConsoleColor.Gray);
+        Write(new string('=', text.Length), ConsoleColor.Gray);
+        Write("", ConsoleColor.Gray);
     }
 
     public static void Info(string message) => Write(message, ConsoleColor.Gray);
@@ -18,6 +21,14 @@ public static class ConsoleUI
 
     private static void Write(string message, ConsoleColor color)
     {
+        var handler = OutputHandler;
+
+        if (handler is not null)
+        {
+            handler(message, color);
+            return;
+        }
+
         var previous = Console.ForegroundColor;
         Console.ForegroundColor = color;
         Console.WriteLine(message);

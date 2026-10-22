@@ -133,15 +133,26 @@ public class MainForm : Form
             UseSupabase = _supabaseBox.Checked
         };
 
-        using var summary = new SummaryDialog(options);
-
-        if (summary.ShowDialog(this) != DialogResult.OK)
+        using (var summary = new SummaryDialog(options))
         {
-            ShowStatus("[!] Cancelled. Nothing was created.", Theme.Warning);
-            return;
+            if (summary.ShowDialog(this) != DialogResult.OK)
+            {
+                ShowStatus("[!] Cancelled. Nothing was created.", Theme.Warning);
+                return;
+            }
         }
 
-        ShowStatus("[OK] Confirmed. Project creation comes in the next step.", Theme.Success);
+        using var progress = new ProgressForm(options);
+        progress.ShowDialog(this);
+
+        if (progress.Succeeded)
+        {
+            ShowStatus($"[OK] Project created at {options.ProjectPath}", Theme.Success);
+        }
+        else
+        {
+            ShowStatus("[X] Project creation failed. See the log for details.", Theme.Error);
+        }
     }
 
     private void ShowStatus(string message, Color color)
