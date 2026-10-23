@@ -8,7 +8,7 @@ public class SummaryDialog : Form
     public SummaryDialog(ProjectOptions options)
     {
         Text = "Confirm";
-        ClientSize = new Size(560, 330);
+        ClientSize = new Size(560, 350);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -16,47 +16,59 @@ public class SummaryDialog : Form
         StartPosition = FormStartPosition.CenterParent;
         Theme.StyleForm(this);
 
-        var title = Theme.CreateLabel("Summary", Theme.TitleFont, Theme.Accent);
-        title.Location = new Point(24, 20);
+        var card = new CardPanel("Summary")
+        {
+            Location = new Point(24, 24),
+            Size = new Size(512, 262)
+        };
 
-        var details = Theme.CreateLabel(BuildText(options));
-        details.Location = new Point(24, 64);
+        var y = 42;
 
-        var createButton = Theme.CreateButton("Create project");
-        createButton.Location = new Point(24, 270);
-        createButton.Size = new Size(160, 36);
+        AddRow(card, ref y, "Project name", options.ProjectName);
+        AddRow(card, ref y, "Location", options.ProjectPath);
+        AddRow(card, ref y, "Package manager", options.PackageManager.ToCommand());
+        AddRow(card, ref y, "Template", "React + TypeScript + Vite");
+        AddToggleRow(card, ref y, "Tailwind CSS", options.UseTailwind);
+        AddToggleRow(card, ref y, "ESLint", options.UseEslint);
+        AddToggleRow(card, ref y, "Prettier", options.UsePrettier);
+        AddToggleRow(card, ref y, "React Router", options.UseReactRouter);
+        AddToggleRow(card, ref y, "Supabase", options.UseSupabase);
+
+        var createButton = Theme.CreateButton("Create project", primary: true);
+        createButton.Location = new Point(24, 302);
+        createButton.Size = new Size(170, 38);
         createButton.DialogResult = DialogResult.OK;
 
         var cancelButton = Theme.CreateButton("Cancel");
-        cancelButton.Location = new Point(200, 270);
-        cancelButton.Size = new Size(120, 36);
+        cancelButton.Location = new Point(210, 302);
+        cancelButton.Size = new Size(120, 38);
         cancelButton.DialogResult = DialogResult.Cancel;
 
         AcceptButton = createButton;
         CancelButton = cancelButton;
 
-        Controls.AddRange(new Control[] { title, details, createButton, cancelButton });
+        Controls.AddRange(new Control[] { card, createButton, cancelButton });
     }
 
-    private static string BuildText(ProjectOptions options)
+    private static void AddRow(CardPanel card, ref int y, string label, string value, Color? valueColor = null)
     {
-        var lines = new[]
-        {
-            Line("Project name:", options.ProjectName),
-            Line("Location:", options.ProjectPath),
-            Line("Package manager:", options.PackageManager.ToCommand()),
-            Line("Template:", "React + TypeScript + Vite"),
-            Line("Tailwind CSS:", YesNo(options.UseTailwind)),
-            Line("ESLint:", YesNo(options.UseEslint)),
-            Line("Prettier:", YesNo(options.UsePrettier)),
-            Line("React Router:", YesNo(options.UseReactRouter)),
-            Line("Supabase:", YesNo(options.UseSupabase))
-        };
+        var name = Theme.CreateLabel(label, Theme.SmallFont, Theme.Muted);
+        name.Location = new Point(16, y + 2);
 
-        return string.Join(Environment.NewLine, lines);
+        var text = Theme.CreateLabel(value, Theme.BodyFont, valueColor);
+        text.AutoSize = false;
+        text.AutoEllipsis = true;
+        text.Location = new Point(190, y);
+        text.Size = new Size(306, 20);
+
+        card.Controls.Add(name);
+        card.Controls.Add(text);
+
+        y += 24;
     }
 
-    private static string Line(string label, string value) => $"{label,-18}{value}";
-
-    private static string YesNo(bool value) => value ? "Yes" : "No";
+    private static void AddToggleRow(CardPanel card, ref int y, string label, bool value)
+    {
+        AddRow(card, ref y, label, value ? "Yes" : "No", value ? Theme.Accent : Theme.Muted);
+    }
 }

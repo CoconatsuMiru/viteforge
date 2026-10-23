@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using ReactGen.Models;
 using ReactGen.Services;
 using ReactGen.Services.Integrations;
@@ -14,7 +15,7 @@ public class ProgressForm : Form
     private readonly RichTextBox _log = new();
     private readonly ActivityBar _activityBar = new();
     private readonly Label _result = Theme.CreateLabel("Working...", color: Theme.Warning);
-    private readonly Button _openButton = Theme.CreateButton("Open in VS Code");
+    private readonly Button _openButton = Theme.CreateButton("Open in VS Code", primary: true);
     private readonly Button _copyButton = Theme.CreateButton("Copy start commands");
     private readonly Button _closeButton = Theme.CreateButton("Close");
     private readonly System.Windows.Forms.Timer _spinTimer = new() { Interval = 120 };
@@ -23,6 +24,9 @@ public class ProgressForm : Form
     private bool _running;
 
     public bool Succeeded { get; private set; }
+
+    [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
+    private static extern int SetWindowTheme(IntPtr hwnd, string subAppName, string? subIdList);
 
     public ProgressForm(ProjectOptions options)
     {
@@ -35,15 +39,33 @@ public class ProgressForm : Form
         ShowInTaskbar = false;
         Theme.StyleForm(this);
 
-        _log.Location = new Point(24, 24);
-        _log.Size = new Size(772, 360);
-        _log.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        // The log sits in a thin dark frame with some inner padding.
+        _log.BorderStyle = BorderStyle.None;
+        _log.Dock = DockStyle.Fill;
         _log.ReadOnly = true;
         _log.BackColor = Theme.Background;
         _log.ForeColor = Theme.Text;
         _log.Font = Theme.BodyFont;
-        _log.BorderStyle = BorderStyle.FixedSingle;
         _log.DetectUrls = false;
+        _log.HandleCreated += (_, _) => SetWindowTheme(_log.Handle, "DarkMode_Explorer", null);
+
+        var logInner = new Panel
+        {
+            BackColor = Theme.Background,
+            Dock = DockStyle.Fill,
+            Padding = new Padding(10)
+        };
+        logInner.Controls.Add(_log);
+
+        var logFrame = new Panel
+        {
+            BackColor = Theme.CardBorder,
+            Location = new Point(24, 24),
+            Size = new Size(772, 360),
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
+            Padding = new Padding(1)
+        };
+        logFrame.Controls.Add(logInner);
 
         _activityBar.Location = new Point(24, 392);
         _activityBar.Size = new Size(772, 6);
@@ -55,19 +77,19 @@ public class ProgressForm : Form
         _result.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 
         _openButton.Location = new Point(24, 456);
-        _openButton.Size = new Size(190, 36);
+        _openButton.Size = new Size(190, 38);
         _openButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
         _openButton.Visible = false;
         _openButton.Click += OnOpenVsCode;
 
         _copyButton.Location = new Point(230, 456);
-        _copyButton.Size = new Size(240, 36);
+        _copyButton.Size = new Size(240, 38);
         _copyButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
         _copyButton.Visible = false;
         _copyButton.Click += OnCopyCommands;
 
         _closeButton.Location = new Point(676, 456);
-        _closeButton.Size = new Size(120, 36);
+        _closeButton.Size = new Size(120, 38);
         _closeButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
         _closeButton.DialogResult = DialogResult.OK;
         _closeButton.Enabled = false;
@@ -76,7 +98,7 @@ public class ProgressForm : Form
 
         Controls.AddRange(new Control[]
         {
-            _log, _activityBar, _result, _openButton, _copyButton, _closeButton
+            logFrame, _activityBar, _result, _openButton, _copyButton, _closeButton
         });
     }
 
