@@ -1,12 +1,14 @@
 namespace ReactGen.UI;
 
 // Flat command-prompt style button that fades smoothly between normal and hover colors.
+// A primary button keeps a cyan outline and tinted fill.
 public class AnimatedButton : Button
 {
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 15 };
     private float _amount;
     private bool _hovering;
     private bool _pressed;
+    private bool _isPrimary;
 
     public AnimatedButton()
     {
@@ -21,6 +23,16 @@ public class AnimatedButton : Button
         Cursor = Cursors.Hand;
 
         _timer.Tick += OnTimerTick;
+    }
+
+    public bool IsPrimary
+    {
+        get => _isPrimary;
+        set
+        {
+            _isPrimary = value;
+            Invalidate();
+        }
     }
 
     protected override void OnMouseEnter(EventArgs e)
@@ -96,19 +108,27 @@ public class AnimatedButton : Button
     {
         var amount = Enabled ? _amount : 0f;
 
-        var fill = Theme.Lerp(Theme.Background, Theme.Panel, amount);
-        var border = Theme.Lerp(Theme.Border, Theme.Accent, amount);
-        var text = Theme.Lerp(Theme.Text, Theme.Accent, amount);
+        var normalFill = _isPrimary ? Theme.AccentDim : Theme.Background;
+        var hoverFill = _isPrimary ? Theme.Lerp(Theme.AccentDim, Theme.Accent, 0.25f) : Theme.Panel;
+        var normalBorder = _isPrimary ? Theme.Accent : Theme.Border;
+        var normalText = _isPrimary ? Theme.Accent : Theme.Text;
+
+        var fill = Theme.Lerp(normalFill, hoverFill, amount);
+        var border = Theme.Lerp(normalBorder, Theme.Accent, amount);
+        var text = Theme.Lerp(normalText, Theme.Accent, amount);
 
         if (!Enabled)
         {
             text = Theme.Border;
+            border = Theme.InputBorder;
         }
         else
         {
             if (_pressed)
             {
-                fill = Color.FromArgb(48, 48, 48);
+                fill = _isPrimary
+                    ? Theme.Lerp(Theme.AccentDim, Theme.Accent, 0.4f)
+                    : Color.FromArgb(48, 48, 48);
             }
 
             if (Focused)

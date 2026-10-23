@@ -1,19 +1,32 @@
+using System.Runtime.InteropServices;
+
 namespace ReactGen.UI;
 
-// Command-prompt look: black background, light gray text, Consolas font.
+// Command-prompt look: near-black surfaces, soft gray text, one cyan accent, Consolas font.
 public static class Theme
 {
     public static readonly Color Background = Color.FromArgb(12, 12, 12);
+    public static readonly Color Card = Color.FromArgb(22, 22, 22);
+    public static readonly Color CardBorder = Color.FromArgb(48, 48, 48);
     public static readonly Color Panel = Color.FromArgb(30, 30, 30);
+    public static readonly Color InputFill = Color.FromArgb(14, 14, 14);
+    public static readonly Color InputBorder = Color.FromArgb(64, 64, 64);
     public static readonly Color Border = Color.FromArgb(118, 118, 118);
     public static readonly Color Text = Color.FromArgb(204, 204, 204);
+    public static readonly Color Muted = Color.FromArgb(140, 140, 140);
     public static readonly Color Accent = Color.FromArgb(97, 214, 214);
+    public static readonly Color AccentDim = Color.FromArgb(16, 46, 48);
     public static readonly Color Success = Color.FromArgb(19, 161, 14);
     public static readonly Color Error = Color.FromArgb(231, 72, 86);
     public static readonly Color Warning = Color.FromArgb(249, 241, 165);
 
     public static readonly Font BodyFont = new("Consolas", 10f);
+    public static readonly Font SmallFont = new("Consolas", 9f);
+    public static readonly Font SectionFont = new("Consolas", 10f, FontStyle.Bold);
     public static readonly Font TitleFont = new("Consolas", 14f, FontStyle.Bold);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
     public static void StyleForm(Form form)
     {
@@ -23,8 +36,40 @@ public static class Theme
         form.ForeColor = Text;
         form.Font = BodyFont;
 
+        form.HandleCreated += (_, _) => ApplyDarkTitleBar(form);
+
         FadeIn(form);
     }
+
+    // Dark title bar. Attributes 34-36 (border/caption/text color) only work on Windows 11;
+    // on other versions the calls fail quietly and the standard dark title bar is used.
+    private static void ApplyDarkTitleBar(Form form)
+    {
+        try
+        {
+            var dark = 1;
+
+            if (DwmSetWindowAttribute(form.Handle, 20, ref dark, sizeof(int)) != 0)
+            {
+                DwmSetWindowAttribute(form.Handle, 19, ref dark, sizeof(int));
+            }
+
+            var caption = ToColorRef(Background);
+            DwmSetWindowAttribute(form.Handle, 35, ref caption, sizeof(int));
+
+            var text = ToColorRef(Text);
+            DwmSetWindowAttribute(form.Handle, 36, ref text, sizeof(int));
+
+            var border = ToColorRef(CardBorder);
+            DwmSetWindowAttribute(form.Handle, 34, ref border, sizeof(int));
+        }
+        catch (Exception)
+        {
+            // Cosmetic only. Ignore if the system doesn't support it.
+        }
+    }
+
+    private static int ToColorRef(Color color) => color.R | (color.G << 8) | (color.B << 16);
 
     // Blends two colors. amount 0 = from, 1 = to.
     public static Color Lerp(Color from, Color to, float amount)
@@ -67,50 +112,8 @@ public static class Theme
         };
     }
 
-    public static TextBox CreateTextBox()
+    public static Button CreateButton(string text, bool primary = false)
     {
-        return new TextBox
-        {
-            Font = BodyFont,
-            BackColor = Panel,
-            ForeColor = Text,
-            BorderStyle = BorderStyle.FixedSingle
-        };
-    }
-
-    public static Button CreateButton(string text)
-    {
-        return new AnimatedButton { Text = text };
-    }
-
-    public static CheckBox CreateCheckBox(string text, bool isChecked = false)
-    {
-        return new CheckBox
-        {
-            Text = text,
-            Checked = isChecked,
-            AutoSize = true,
-            Font = BodyFont,
-            ForeColor = Text,
-            BackColor = Color.Transparent,
-            Cursor = Cursors.Hand
-        };
-    }
-
-    public static ComboBox CreateComboBox(params string[] items)
-    {
-        var box = new ComboBox
-        {
-            Font = BodyFont,
-            DropDownStyle = ComboBoxStyle.DropDownList,
-            FlatStyle = FlatStyle.Flat,
-            BackColor = Panel,
-            ForeColor = Text
-        };
-
-        box.Items.AddRange(items);
-        box.SelectedIndex = 0;
-
-        return box;
+        return new AnimatedButton { Text = text, IsPrimary = primary };
     }
 }

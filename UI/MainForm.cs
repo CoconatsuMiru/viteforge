@@ -5,102 +5,132 @@ namespace ReactGen.UI;
 
 public class MainForm : Form
 {
-    private const string TitleText = "ReactGen - React + TypeScript + Vite project generator";
+    private const string TitleText = "> ReactGen";
 
     private readonly Label _title = Theme.CreateLabel("_", Theme.TitleFont, Theme.Accent);
-    private readonly System.Windows.Forms.Timer _titleTimer = new() { Interval = 30 };
+    private readonly System.Windows.Forms.Timer _titleTimer = new() { Interval = 90 };
     private int _typedCount;
     private int _blinkTicks;
     private bool _cursorVisible = true;
 
-    private readonly TextBox _nameBox = Theme.CreateTextBox();
-    private readonly TextBox _folderBox = Theme.CreateTextBox();
+    private readonly InputBox _nameBox = new();
+    private readonly InputBox _folderBox = new();
     private readonly Button _browseButton = Theme.CreateButton("Browse...");
-    private readonly ComboBox _managerBox = Theme.CreateComboBox("npm", "pnpm", "yarn");
-    private readonly CheckBox _tailwindBox = Theme.CreateCheckBox("Tailwind CSS", true);
-    private readonly CheckBox _eslintBox = Theme.CreateCheckBox("ESLint", true);
-    private readonly CheckBox _prettierBox = Theme.CreateCheckBox("Prettier", true);
-    private readonly CheckBox _routerBox = Theme.CreateCheckBox("React Router");
-    private readonly CheckBox _supabaseBox = Theme.CreateCheckBox("Supabase");
-    private readonly Button _createButton = Theme.CreateButton("Review and create");
+    private readonly SegmentedControl _managerBox = new("npm", "pnpm", "yarn");
+    private readonly CheckToggle _tailwindBox = new("Tailwind CSS", true);
+    private readonly CheckToggle _eslintBox = new("ESLint", true);
+    private readonly CheckToggle _prettierBox = new("Prettier", true);
+    private readonly CheckToggle _routerBox = new("React Router");
+    private readonly CheckToggle _supabaseBox = new("Supabase");
+    private readonly Button _createButton = Theme.CreateButton("Review and create", primary: true);
     private readonly Label _status = Theme.CreateLabel("");
 
     public MainForm()
     {
         Text = "ReactGen";
-        ClientSize = new Size(760, 570);
-        MinimumSize = new Size(640, 570);
+        ClientSize = new Size(760, 620);
+        MinimumSize = new Size(700, 660);
         StartPosition = FormStartPosition.CenterScreen;
         Theme.StyleForm(this);
 
-        _title.Location = new Point(24, 20);
+        // Header
+        _title.Location = new Point(24, 16);
         _titleTimer.Tick += OnTitleTick;
 
-        var divider = new Panel
+        var subtitle = Theme.CreateLabel(
+            "Set up a React + TypeScript + Vite project in a few clicks.",
+            Theme.SmallFont,
+            Theme.Muted);
+        subtitle.Location = new Point(26, 46);
+
+        // Card: Project
+        var projectCard = new CardPanel("Project")
         {
-            BackColor = Theme.Border,
-            Location = new Point(24, 58),
-            Size = new Size(712, 1),
+            Location = new Point(24, 76),
+            Size = new Size(712, 172),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
         };
 
-        var nameLabel = Theme.CreateLabel("Project name");
-        nameLabel.Location = new Point(24, 76);
+        var nameLabel = Theme.CreateLabel("Project name", Theme.SmallFont, Theme.Muted);
+        nameLabel.Location = new Point(16, 40);
 
-        _nameBox.Location = new Point(24, 100);
-        _nameBox.Size = new Size(712, 28);
+        _nameBox.Location = new Point(16, 60);
+        _nameBox.Size = new Size(680, 34);
         _nameBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
-        var folderLabel = Theme.CreateLabel("Destination folder");
-        folderLabel.Location = new Point(24, 146);
+        var folderLabel = Theme.CreateLabel("Destination folder", Theme.SmallFont, Theme.Muted);
+        folderLabel.Location = new Point(16, 104);
 
-        _folderBox.Text = @"C:\Dev";
-        _folderBox.Location = new Point(24, 170);
-        _folderBox.Size = new Size(592, 28);
+        _folderBox.Value = @"C:\Dev";
+        _folderBox.Location = new Point(16, 124);
+        _folderBox.Size = new Size(560, 34);
         _folderBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
-        _browseButton.Location = new Point(628, 168);
-        _browseButton.Size = new Size(108, 32);
+        _browseButton.Location = new Point(588, 124);
+        _browseButton.Size = new Size(108, 34);
         _browseButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _browseButton.Click += OnBrowse;
 
-        var managerLabel = Theme.CreateLabel("Package manager");
-        managerLabel.Location = new Point(24, 224);
+        projectCard.Controls.AddRange(new Control[]
+        {
+            nameLabel, _nameBox, folderLabel, _folderBox, _browseButton
+        });
 
-        _managerBox.Location = new Point(24, 248);
-        _managerBox.Size = new Size(200, 28);
+        // Card: Package manager
+        var managerCard = new CardPanel("Package manager")
+        {
+            Location = new Point(24, 260),
+            Size = new Size(712, 88),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
 
-        var integrationsLabel = Theme.CreateLabel("Optional integrations");
-        integrationsLabel.Location = new Point(24, 302);
+        _managerBox.Location = new Point(16, 40);
+        _managerBox.Size = new Size(346, 34);
 
-        _tailwindBox.Location = new Point(24, 330);
-        _eslintBox.Location = new Point(24, 360);
-        _prettierBox.Location = new Point(24, 390);
-        _routerBox.Location = new Point(300, 330);
-        _supabaseBox.Location = new Point(300, 360);
+        managerCard.Controls.Add(_managerBox);
 
-        _createButton.Location = new Point(24, 442);
-        _createButton.Size = new Size(200, 36);
+        // Card: Integrations
+        var integrationsCard = new CardPanel("Optional integrations")
+        {
+            Location = new Point(24, 360),
+            Size = new Size(712, 140),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+
+        _tailwindBox.Location = new Point(16, 40);
+        _eslintBox.Location = new Point(16, 70);
+        _prettierBox.Location = new Point(16, 100);
+        _routerBox.Location = new Point(360, 40);
+        _supabaseBox.Location = new Point(360, 70);
+
+        integrationsCard.Controls.AddRange(new Control[]
+        {
+            _tailwindBox, _eslintBox, _prettierBox, _routerBox, _supabaseBox
+        });
+
+        // Action row
+        _createButton.Location = new Point(24, 516);
+        _createButton.Size = new Size(220, 38);
         _createButton.Click += OnReviewAndCreate;
+        AcceptButton = (IButtonControl)_createButton;
 
         _status.AutoSize = false;
-        _status.Location = new Point(24, 498);
-        _status.Size = new Size(712, 56);
+        _status.Location = new Point(24, 566);
+        _status.Size = new Size(712, 44);
         _status.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
         Controls.AddRange(new Control[]
         {
-            _title, divider, nameLabel, _nameBox, folderLabel, _folderBox, _browseButton,
-            managerLabel, _managerBox, integrationsLabel,
-            _tailwindBox, _eslintBox, _prettierBox, _routerBox, _supabaseBox,
-            _createButton, _status
+            _title, subtitle, projectCard, managerCard, integrationsCard, _createButton, _status
         });
     }
 
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
+
         _titleTimer.Start();
+        _nameBox.FocusInput();
     }
 
     protected override void OnFormClosed(FormClosedEventArgs e)
@@ -122,7 +152,7 @@ public class MainForm : Form
 
         _blinkTicks++;
 
-        if (_blinkTicks % 16 == 0)
+        if (_blinkTicks % 6 == 0)
         {
             _cursorVisible = !_cursorVisible;
             _title.Text = TitleText + (_cursorVisible ? "_" : " ");
@@ -138,7 +168,7 @@ public class MainForm : Form
             ShowNewFolderButton = true
         };
 
-        var current = InputValidator.NormalizePath(_folderBox.Text);
+        var current = InputValidator.NormalizePath(_folderBox.Value);
 
         if (Directory.Exists(current))
         {
@@ -147,14 +177,14 @@ public class MainForm : Form
 
         if (dialog.ShowDialog(this) == DialogResult.OK)
         {
-            _folderBox.Text = dialog.SelectedPath;
+            _folderBox.Value = dialog.SelectedPath;
         }
     }
 
     private void OnReviewAndCreate(object? sender, EventArgs e)
     {
-        var name = _nameBox.Text.Trim();
-        var folder = _folderBox.Text;
+        var name = _nameBox.Value.Trim();
+        var folder = _folderBox.Value;
 
         var error = InputValidator.ValidateProjectName(name)
             ?? InputValidator.ValidateDestinationFolder(folder)
