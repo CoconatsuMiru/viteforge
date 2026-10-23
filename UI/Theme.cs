@@ -25,6 +25,8 @@ public static class Theme
     public static readonly Font SectionFont = new("Consolas", 10f, FontStyle.Bold);
     public static readonly Font TitleFont = new("Consolas", 14f, FontStyle.Bold);
 
+    private static readonly Lazy<Icon?> AppIcon = new(LoadAppIcon);
+
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
@@ -36,9 +38,29 @@ public static class Theme
         form.ForeColor = Text;
         form.Font = BodyFont;
 
+        if (AppIcon.Value is { } icon)
+        {
+            form.Icon = icon;
+        }
+
         form.HandleCreated += (_, _) => ApplyDarkTitleBar(form);
 
         FadeIn(form);
+    }
+
+    // Loads the icon embedded in the .exe. Returns null if it can't be read.
+    private static Icon? LoadAppIcon()
+    {
+        try
+        {
+            using var stream = typeof(Theme).Assembly.GetManifestResourceStream("app.ico");
+
+            return stream is null ? null : new Icon(stream);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     // Dark title bar. Attributes 34-36 (border/caption/text color) only work on Windows 11;
