@@ -5,6 +5,14 @@ namespace ReactGen.UI;
 
 public class MainForm : Form
 {
+    private const string TitleText = "ReactGen - React + TypeScript + Vite project generator";
+
+    private readonly Label _title = Theme.CreateLabel("_", Theme.TitleFont, Theme.Accent);
+    private readonly System.Windows.Forms.Timer _titleTimer = new() { Interval = 30 };
+    private int _typedCount;
+    private int _blinkTicks;
+    private bool _cursorVisible = true;
+
     private readonly TextBox _nameBox = Theme.CreateTextBox();
     private readonly TextBox _folderBox = Theme.CreateTextBox();
     private readonly Button _browseButton = Theme.CreateButton("Browse...");
@@ -25,63 +33,100 @@ public class MainForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         Theme.StyleForm(this);
 
-        var title = Theme.CreateLabel(
-            "ReactGen - React + TypeScript + Vite project generator",
-            Theme.TitleFont,
-            Theme.Accent);
-        title.Location = new Point(24, 20);
+        _title.Location = new Point(24, 20);
+        _titleTimer.Tick += OnTitleTick;
+
+        var divider = new Panel
+        {
+            BackColor = Theme.Border,
+            Location = new Point(24, 58),
+            Size = new Size(712, 1),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
 
         var nameLabel = Theme.CreateLabel("Project name");
-        nameLabel.Location = new Point(24, 70);
+        nameLabel.Location = new Point(24, 76);
 
-        _nameBox.Location = new Point(24, 94);
+        _nameBox.Location = new Point(24, 100);
         _nameBox.Size = new Size(712, 28);
         _nameBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
         var folderLabel = Theme.CreateLabel("Destination folder");
-        folderLabel.Location = new Point(24, 140);
+        folderLabel.Location = new Point(24, 146);
 
         _folderBox.Text = @"C:\Dev";
-        _folderBox.Location = new Point(24, 164);
+        _folderBox.Location = new Point(24, 170);
         _folderBox.Size = new Size(592, 28);
         _folderBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
-        _browseButton.Location = new Point(628, 162);
+        _browseButton.Location = new Point(628, 168);
         _browseButton.Size = new Size(108, 32);
         _browseButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _browseButton.Click += OnBrowse;
 
         var managerLabel = Theme.CreateLabel("Package manager");
-        managerLabel.Location = new Point(24, 220);
+        managerLabel.Location = new Point(24, 224);
 
-        _managerBox.Location = new Point(24, 244);
+        _managerBox.Location = new Point(24, 248);
         _managerBox.Size = new Size(200, 28);
 
         var integrationsLabel = Theme.CreateLabel("Optional integrations");
-        integrationsLabel.Location = new Point(24, 300);
+        integrationsLabel.Location = new Point(24, 302);
 
-        _tailwindBox.Location = new Point(24, 328);
-        _eslintBox.Location = new Point(24, 358);
-        _prettierBox.Location = new Point(24, 388);
-        _routerBox.Location = new Point(300, 328);
-        _supabaseBox.Location = new Point(300, 358);
+        _tailwindBox.Location = new Point(24, 330);
+        _eslintBox.Location = new Point(24, 360);
+        _prettierBox.Location = new Point(24, 390);
+        _routerBox.Location = new Point(300, 330);
+        _supabaseBox.Location = new Point(300, 360);
 
-        _createButton.Location = new Point(24, 440);
+        _createButton.Location = new Point(24, 442);
         _createButton.Size = new Size(200, 36);
         _createButton.Click += OnReviewAndCreate;
 
         _status.AutoSize = false;
-        _status.Location = new Point(24, 496);
+        _status.Location = new Point(24, 498);
         _status.Size = new Size(712, 56);
         _status.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
         Controls.AddRange(new Control[]
         {
-            title, nameLabel, _nameBox, folderLabel, _folderBox, _browseButton,
+            _title, divider, nameLabel, _nameBox, folderLabel, _folderBox, _browseButton,
             managerLabel, _managerBox, integrationsLabel,
             _tailwindBox, _eslintBox, _prettierBox, _routerBox, _supabaseBox,
             _createButton, _status
         });
+    }
+
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        _titleTimer.Start();
+    }
+
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        _titleTimer.Stop();
+        _titleTimer.Dispose();
+        base.OnFormClosed(e);
+    }
+
+    // Types the title one character at a time, then blinks the cursor.
+    private void OnTitleTick(object? sender, EventArgs e)
+    {
+        if (_typedCount < TitleText.Length)
+        {
+            _typedCount++;
+            _title.Text = TitleText[.._typedCount] + "_";
+            return;
+        }
+
+        _blinkTicks++;
+
+        if (_blinkTicks % 16 == 0)
+        {
+            _cursorVisible = !_cursorVisible;
+            _title.Text = TitleText + (_cursorVisible ? "_" : " ");
+        }
     }
 
     private void OnBrowse(object? sender, EventArgs e)

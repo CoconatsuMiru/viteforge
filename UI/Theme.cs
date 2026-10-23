@@ -22,6 +22,37 @@ public static class Theme
         form.BackColor = Background;
         form.ForeColor = Text;
         form.Font = BodyFont;
+
+        FadeIn(form);
+    }
+
+    // Blends two colors. amount 0 = from, 1 = to.
+    public static Color Lerp(Color from, Color to, float amount)
+    {
+        int Mix(int a, int b) => (int)Math.Round(a + (b - a) * amount);
+
+        return Color.FromArgb(Mix(from.R, to.R), Mix(from.G, to.G), Mix(from.B, to.B));
+    }
+
+    // Makes the window fade in when it is first shown.
+    public static void FadeIn(Form form)
+    {
+        form.Opacity = 0;
+
+        var timer = new System.Windows.Forms.Timer { Interval = 15 };
+
+        timer.Tick += (_, _) =>
+        {
+            form.Opacity = Math.Min(1.0, form.Opacity + 0.08);
+
+            if (form.Opacity >= 1.0)
+            {
+                timer.Stop();
+            }
+        };
+
+        form.Shown += (_, _) => timer.Start();
+        form.FormClosed += (_, _) => timer.Dispose();
     }
 
     public static Label CreateLabel(string text, Font? font = null, Color? color = null)
@@ -49,22 +80,7 @@ public static class Theme
 
     public static Button CreateButton(string text)
     {
-        var button = new Button
-        {
-            Text = text,
-            Font = BodyFont,
-            BackColor = Background,
-            ForeColor = Text,
-            FlatStyle = FlatStyle.Flat,
-            UseVisualStyleBackColor = false,
-            Cursor = Cursors.Hand
-        };
-
-        button.FlatAppearance.BorderColor = Border;
-        button.FlatAppearance.MouseOverBackColor = Panel;
-        button.FlatAppearance.MouseDownBackColor = Border;
-
-        return button;
+        return new AnimatedButton { Text = text };
     }
 
     public static CheckBox CreateCheckBox(string text, bool isChecked = false)

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ReactGen.Models;
 using ReactGen.Services;
 using ReactGen.Services.Integrations;
@@ -7,12 +8,18 @@ namespace ReactGen.UI;
 // Runs the generator, shows its output live, then offers follow-up actions.
 public class ProgressForm : Form
 {
+    private static readonly string[] SpinnerFrames = { "|", "/", "-", "\\" };
+
     private readonly ProjectOptions _options;
     private readonly RichTextBox _log = new();
-    private readonly Label _result = Theme.CreateLabel("Working... please wait.", color: Theme.Warning);
+    private readonly ActivityBar _activityBar = new();
+    private readonly Label _result = Theme.CreateLabel("Working...", color: Theme.Warning);
     private readonly Button _openButton = Theme.CreateButton("Open in VS Code");
     private readonly Button _copyButton = Theme.CreateButton("Copy start commands");
     private readonly Button _closeButton = Theme.CreateButton("Close");
+    private readonly System.Windows.Forms.Timer _spinTimer = new() { Interval = 120 };
+    private readonly Stopwatch _stopwatch = new();
+    private int _frame;
     private bool _running;
 
     public bool Succeeded { get; private set; }
@@ -29,7 +36,7 @@ public class ProgressForm : Form
         Theme.StyleForm(this);
 
         _log.Location = new Point(24, 24);
-        _log.Size = new Size(772, 370);
+        _log.Size = new Size(772, 360);
         _log.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
         _log.ReadOnly = true;
         _log.BackColor = Theme.Background;
@@ -38,9 +45,13 @@ public class ProgressForm : Form
         _log.BorderStyle = BorderStyle.FixedSingle;
         _log.DetectUrls = false;
 
+        _activityBar.Location = new Point(24, 392);
+        _activityBar.Size = new Size(772, 6);
+        _activityBar.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+
         _result.AutoSize = false;
-        _result.Location = new Point(24, 404);
-        _result.Size = new Size(772, 40);
+        _result.Location = new Point(24, 410);
+        _result.Size = new Size(772, 32);
         _result.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 
         _openButton.Location = new Point(24, 456);
@@ -61,7 +72,12 @@ public class ProgressForm : Form
         _closeButton.DialogResult = DialogResult.OK;
         _closeButton.Enabled = false;
 
-        Controls.AddRange(new Control[] { _log, _result, _openButton, _copyButton, _closeButton });
+        _spinTimer.Tick += OnSpinTick;
+
+        Controls.AddRange(new Control[]
+        {
+            _log, _activityBar, _result, _openButton, _copyButton, _closeButton
+        });
     }
 
     protected override async void OnShown(EventArgs e)
@@ -71,16 +87,23 @@ public class ProgressForm : Form
         _running = true;
         ConsoleUI.OutputHandler = AppendLog;
 
+        _stopwatch.Start();
+        _spinTimer.Start();
+        _activityBar.Start();
+
         var success = await Task.Run(Generate);
 
         ConsoleUI.OutputHandler = null;
         _running = false;
+        _spinTimer.Stop();
+        _stopwatch.Stop();
         Succeeded = success;
 
         if (success)
         {
+            _activityBar.Finish(Theme.Success);
             _result.ForeColor = Theme.Success;
-            _result.Text = "[OK] Done.";
+            _result.Text = $"[OK] Done in {FormatElapsed()}.";
 
             ShowStartCommands();
 
@@ -89,8 +112,9 @@ public class ProgressForm : Form
         }
         else
         {
+            _activityBar.Finish(Theme.Error);
             _result.ForeColor = Theme.Error;
-            _result.Text = "[X] Failed. Check the log above for details.";
+            _result.Text = $"[X] Failed after {FormatElapsed()}. Check the log above for details.";
         }
 
         _closeButton.Enabled = true;
@@ -108,6 +132,22 @@ public class ProgressForm : Form
 
         base.OnFormClosing(e);
     }
+
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        _spinTimer.Dispose();
+        base.OnFormClosed(e);
+    }
+
+    private void OnSpinTick(object? sender, EventArgs e)
+    {
+        var frame = SpinnerFrames[_frame % SpinnerFrames.Length];
+        _frame++;
+
+        _result.Text = $"Working... {frame}  {FormatElapsed()}";
+    }
+
+    private string FormatElapsed() => _stopwatch.Elapsed.ToString(@"mm\:ss");
 
     private bool Generate()
     {
